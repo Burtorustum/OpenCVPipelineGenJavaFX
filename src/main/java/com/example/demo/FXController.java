@@ -1,13 +1,26 @@
 package com.example.demo;
 
+import com.example.demo.CVStages.Blur;
+import com.example.demo.CVStages.CVStage;
+import com.example.demo.CVStages.Dilate;
+import com.example.demo.CVStages.Erode;
+import com.example.demo.CVStages.HSVThreshold;
+import com.example.demo.CVStages.WebcamInput;
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.videoio.VideoCapture;
 
 public class FXController {
@@ -15,12 +28,25 @@ public class FXController {
   @FXML
   public ToggleButton cameraToggle;
 
-  @FXML
-  private ImageView currentFrame;
-
+  private final ArrayList<CVStage> stages = new ArrayList<>();
   private ScheduledExecutorService timer;
   private final VideoCapture capture = new VideoCapture();
   private boolean cameraActive = false;
+
+  public void setup(HBox hBox) {
+
+    this.stages.add(new WebcamInput());
+    this.stages.add(new Blur(new Size(11, 11)));
+    this.stages.add(new Erode(new Mat(), new Point(), 5));
+    this.stages.add(new Dilate(new Mat(), new Point(), 5));
+    this.stages.add(new HSVThreshold(new Scalar(50, 50, 50), new Scalar(150, 150, 150)));
+
+    for (CVStage stage : stages) {
+      VBox wrap = new VBox(stage.imageView, stage.label);
+      wrap.setAlignment(Pos.CENTER);
+      hBox.getChildren().add(wrap);
+    }
+  }
 
   /**
    * The action triggered by pushing the button on the GUI
@@ -40,49 +66,50 @@ public class FXController {
         // grab a frame every 33 ms (30 frames/sec)
         Runnable frameGrabber = () -> {
           // effectively grab and process a single frame
-          Mat frame = grabFrame();
+          Mat[] frames = grabFrame();
           // convert and show the frame
-          Image imageToShow = Utils.mat2Image(frame);
-          updateImageView(currentFrame, imageToShow);
+          for (int i = 0; i < this.stages.size(); i++) {
+            Image img = Utils.mat2Image(frames[i]);
+            updateImageView(stages.get(i).imageView, img);
+          }
         };
 
         this.timer = Executors.newSingleThreadScheduledExecutor();
-        this.timer.scheduleAtFixedRate(frameGrabber, 0, 33, TimeUnit.MILLISECONDS);
+        this.timer.scheduleWithFixedDelay(frameGrabber, 0, 1, TimeUnit.MILLISECONDS);
 
-        // update the button content
       } else {
-        // log the error
         System.err.println("Failed to open webcam");
       }
     } else {
       // the camera is not active at this point
       this.cameraActive = false;
-
-      // stop the timer
       this.stopAcquisition();
     }
   }
-
-  // TODO: below can be modified to return Mat[] which includes all steps of pipeline
 
   /**
    * Get a frame from the opened video stream (if any)
    *
    * @return the {@link Mat} to show
    */
-  private Mat grabFrame() {
+  private Mat[] grabFrame() {
     // init everything
-    Mat frame = new Mat();
+    Mat[] frames = new Mat[this.stages.size()];
+    Mat camCapture = new Mat();
 
     // check if the capture is open
     if (this.capture.isOpened()) {
       try {
         // read the current frame
-        this.capture.read(frame);
+        this.capture.read(camCapture);
 
         // if the frame is not empty, process it
-        if (!frame.empty()) {
-          //Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
+        if (!camCapture.empty()) {
+          for (int i = 0; i < this.stages.size(); i++) {
+            frames[i] = new Mat();
+            stages.get(i).apply(camCapture, frames[i]);
+            frames[i].copyTo(camCapture);
+          }
         }
 
       } catch (Exception e) {
@@ -91,7 +118,7 @@ public class FXController {
       }
     }
 
-    return frame;
+    return frames;
   }
 
   /**

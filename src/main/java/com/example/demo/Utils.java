@@ -29,7 +29,7 @@ public final class Utils {
     try {
       return SwingFXUtils.toFXImage(matToBufferedImage(frame), null);
     } catch (Exception e) {
-      System.err.println("Cannot convert the Mat obejct: " + e);
+      System.err.println("Cannot convert the Mat object: " + e);
       return null;
     }
   }
@@ -56,7 +56,7 @@ public final class Utils {
   private static BufferedImage matToBufferedImage(Mat original) {
     // init
     BufferedImage image;
-    int width = original.width() ;
+    int width = original.width();
     int height = original.height();
     int channels = original.channels();
     byte[] sourcePixels = new byte[width * height * channels];
