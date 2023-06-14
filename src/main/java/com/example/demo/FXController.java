@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.control.Control;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -19,8 +20,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.videoio.VideoCapture;
 
 public class FXController {
@@ -36,13 +35,16 @@ public class FXController {
   public void setup(HBox hBox) {
 
     this.stages.add(new WebcamInput());
-    this.stages.add(new Blur(new Size(11, 11)));
-    this.stages.add(new Erode(new Mat(), new Point(), 5));
-    this.stages.add(new Dilate(new Mat(), new Point(), 5));
-    this.stages.add(new HSVThreshold(new Scalar(50, 50, 50), new Scalar(150, 150, 150)));
+    this.stages.add(new Blur());
+    this.stages.add(new Erode(new Mat(), new Point()));
+    this.stages.add(new Dilate(new Mat(), new Point()));
+    this.stages.add(new HSVThreshold());
 
     for (CVStage stage : stages) {
       VBox wrap = new VBox(stage.imageView, stage.label);
+      for (Control c : stage.controls) {
+        wrap.getChildren().add(c);
+      }
       wrap.setAlignment(Pos.CENTER);
       hBox.getChildren().add(wrap);
     }

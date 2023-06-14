@@ -1,29 +1,48 @@
 package com.example.demo.CVStages;
 
+import javafx.beans.binding.Bindings;
+import javafx.scene.control.Control;
+import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.imgproc.Imgproc;
 
 public class Dilate extends CVStage {
 
-  private int iterations;
+  private Slider iterationsSlider;
   private final Mat kernel;
   private final Point anchor;
 
-  public Dilate(Mat kernel, Point anchor, int iterations) {
+  public Dilate(Mat kernel, Point anchor) {
     super("dilate");
 
     this.kernel = kernel;
     this.anchor = anchor;
-    this.iterations = iterations;
   }
 
   @Override
   public void apply(Mat src, Mat dst) {
-    Imgproc.dilate(src, dst, this.kernel, this.anchor, this.iterations);
+    Imgproc.dilate(src, dst, this.kernel, this.anchor, (int) this.iterationsSlider.getValue());
   }
 
-  public void setIterations(int iterations) {
-    this.iterations = iterations;
+  @Override
+  protected Control[] setupControls() {
+    this.iterationsSlider = new Slider(1, 25, 3);
+    this.iterationsSlider.setSnapToTicks(true);
+    this.iterationsSlider.setBlockIncrement(1);
+    this.iterationsSlider.setMajorTickUnit(1);
+    this.iterationsSlider.setMinorTickCount(0);
+    this.iterationsSlider.setShowTickLabels(true);
+    
+    Label iterationSliderLabel = new Label();
+    iterationSliderLabel.textProperty().bind(
+        Bindings.format(
+            "Iterations: %.2f",
+            this.iterationsSlider.valueProperty()
+        )
+    );
+
+    return new Control[]{iterationSliderLabel, this.iterationsSlider};
   }
 }
